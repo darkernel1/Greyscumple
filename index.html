@@ -336,7 +336,7 @@
         <!-- Pantalla inicial -->
         <div id="initialScreen" class="initial-screen">
             <div class="header">
-                <div class="birthday-name">💕 Greys Alanna 💕</div>
+                <div class="birthday-name">💕 GREYS TAPIA WILSON 💕</div>
                 <div class="age-badge">6</div>
             </div>
 
@@ -367,7 +367,7 @@
                 Tu asistencia ha sido confirmada
             </div>
 
-            <div class="kawaii-elements">🥳 ¡Nos vemos en el cumple! 🥳</div>
+            <div class="kawaii-elements">🥳 ¡Nos vemos en la fiesta! 🥳</div>
 
             <div class="event-details">
                 <div class="detail-item">
@@ -544,16 +544,20 @@
 
         // Console log para debugging
         console.log('🎉 Cumpleaños de Greys - PWA cargada correctamente');
-        console.log('📧 EmailJS configurado correctamente');
+        console.log('📧 Service ID: service_q7l3asm');
+        console.log('🔑 Public Key: XokWkYQQHAzpMBHJz'); 
         console.log('📋 Template ID: template_jfpho7b');
         console.log('📨 Email destino: macfius@gmail.com');
         
-        // Verificar que EmailJS está disponible
-        if (typeof emailjs !== 'undefined') {
-            console.log('✅ EmailJS cargado correctamente');
-        } else {
-            console.error('❌ Error: EmailJS no se cargó correctamente');
-        }
+        // Verificar EmailJS después de un momento
+        setTimeout(() => {
+            if (typeof emailjs !== 'undefined') {
+                console.log('✅ EmailJS está disponible');
+            } else {
+                console.warn('⚠️ EmailJS no se pudo cargar. La PWA funcionará sin envío de emails.');
+                console.log('💡 Sugerencia: Verifica tu conexión a internet o usa otro CDN');
+            }
+        }, 2000);
     </script>
 </body>
 </html>
