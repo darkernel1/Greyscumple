@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>¡Cumpleaños de Greys! 🎉</title>
     
-    <!-- EmailJS SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/emailjs-com/3.2.0/email.min.js"></script>
-    
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#E91E63">
     <meta name="description" content="Invitación al cumpleaños de Greys Tapia Wilson">
@@ -301,6 +298,27 @@
             to { opacity: 1; transform: scale(1); }
         }
 
+        /* Email notification */
+        .email-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9em;
+            z-index: 1000;
+            display: none;
+        }
+
+        .email-success {
+            background: #4CAF50;
+        }
+
+        .email-error {
+            background: #f44336;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             .container {
@@ -331,6 +349,9 @@
     <div class="bg-decoration">🌟</div>
     <div class="bg-decoration">💖</div>
     <div class="bg-decoration">🦄</div>
+
+    <!-- Notificación de email -->
+    <div id="emailStatus" class="email-status"></div>
 
     <div class="container">
         <!-- Pantalla inicial -->
@@ -407,10 +428,16 @@
         </div>
     </div>
 
-    <script>
-        // Inicializar EmailJS
-        emailjs.init("service_qtrq92g"); // Tu Public Key
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
+    <script>
+        console.log('🎉 Cumpleaños de Greys - Iniciando aplicación...');
+
+        // Variables globales
+        let emailjsReady = false;
+
+        // Elementos del DOM
         const childNameInput = document.getElementById('childName');
         const confirmBtn = document.getElementById('confirmBtn');
         const loading = document.getElementById('loading');
@@ -418,30 +445,117 @@
         const infoScreen = document.getElementById('infoScreen');
         const confirmedNameSpan = document.getElementById('confirmedName');
         const celebration = document.getElementById('celebration');
+        const emailStatus = document.getElementById('emailStatus');
 
-        // Función para enviar email
+        // Función para mostrar notificación de email
+        function showEmailStatus(message, isSuccess = true) {
+            emailStatus.textContent = message;
+            emailStatus.className = `email-status ${isSuccess ? 'email-success' : 'email-error'}`;
+            emailStatus.style.display = 'block';
+            
+            setTimeout(() => {
+                emailStatus.style.display = 'none';
+            }, 5000);
+        }
+
+        // Función para inicializar EmailJS
+        function initializeEmailJS() {
+            try {
+                if (typeof emailjs !== 'undefined' && emailjs.init) {
+                    emailjs.init("XokWkYQQHAzpMBHJz");
+                    emailjsReady = true;
+                    console.log('✅ EmailJS inicializado correctamente');
+                    return true;
+                } else {
+                    console.log('⏳ EmailJS no disponible aún, continuando sin email');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error al inicializar EmailJS:', error);
+                return false;
+            }
+        }
+
+        // Función para enviar email via EmailJS
+        async function sendEmailJS(templateParams) {
+            try {
+                const response = await emailjs.send(
+                    'service_q7l3asm',
+                    'template_jfpho7b',
+                    templateParams
+                );
+                console.log('✅ Email enviado vía EmailJS:', response);
+                showEmailStatus('Email enviado correctamente', true);
+                return { success: true, method: 'emailjs' };
+            } catch (error) {
+                console.error('❌ Error con EmailJS:', error);
+                return { success: false, error };
+            }
+        }
+
+        // Función para enviar email via mailto (fallback)
+        function sendEmailMailto(templateParams) {
+            const subject = `Nueva confirmación - Cumpleaños Greys: ${templateParams.child_name}`;
+            const body = `Nueva confirmación de asistencia para el cumpleaños de Greys Tapia Wilson
+
+📋 DATOS DE LA CONFIRMACIÓN:
+👶 Nombre del niño/a: ${templateParams.child_name}
+📅 Fecha de confirmación: ${templateParams.confirmation_date}
+🕒 Hora de confirmación: ${templateParams.confirmation_time}
+
+📍 DATOS DEL EVENTO:
+🎉 Cumpleaños: Greys Tapia Wilson (6 años)
+📅 Fecha: Sábado 20 de septiembre
+🕒 Hora: 15:00 hrs
+📍 Lugar: Esquina Manuel Rodríguez con pasaje esmeralda #1620
+
+¡Confirmación enviada automáticamente desde la PWA!`;
+
+            const mailtoLink = `mailto:macfius@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Intentar abrir el cliente de email
+            const tempLink = document.createElement('a');
+            tempLink.href = mailtoLink;
+            tempLink.target = '_blank';
+            tempLink.style.display = 'none';
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+
+            showEmailStatus('Se abrirá tu cliente de email', true);
+            console.log('📧 Email enviado vía mailto');
+            return { success: true, method: 'mailto' };
+        }
+
+        // Función principal para enviar confirmación
         async function sendConfirmationEmail(childName) {
             const now = new Date();
             const templateParams = {
                 child_name: childName,
                 confirmation_date: now.toLocaleDateString('es-ES'),
                 confirmation_time: now.toLocaleTimeString('es-ES'),
-                user_agent: navigator.userAgent,
+                user_agent: navigator.userAgent.substring(0, 100),
                 to_email: 'macfius@gmail.com'
             };
 
-            try {
-                const response = await emailjs.send(
-                    'service_qtrq92g', // Service ID
-                    'template_jfpho7b', // Template ID
-                    templateParams
-                );
-                console.log('Email enviado exitosamente:', response);
-                return true;
-            } catch (error) {
-                console.error('Error al enviar email:', error);
-                return false;
+            console.log('📧 Datos a enviar:', templateParams);
+
+            // Guardar en localStorage como backup
+            localStorage.setItem('lastConfirmation', JSON.stringify({
+                ...templateParams,
+                timestamp: Date.now()
+            }));
+
+            // Intentar EmailJS primero, luego mailto como fallback
+            if (emailjsReady) {
+                const result = await sendEmailJS(templateParams);
+                if (result.success) {
+                    return result;
+                }
             }
+
+            // Fallback a mailto
+            return sendEmailMailto(templateParams);
         }
 
         // Función para mostrar celebración
@@ -452,104 +566,111 @@
             }, 5000);
         }
 
-        // Función para confirmar asistencia
+        // Función principal para confirmar asistencia
         async function confirmAttendance() {
             const name = childNameInput.value.trim();
             
+            console.log('🎯 Confirmando asistencia para:', name);
+            
             if (!name) {
-                alert('¡Por favor escribe el nombre del niño(a)! 😊');
+                alert('Por favor escribe el nombre del niño(a)');
                 childNameInput.focus();
                 return;
             }
 
             if (name.length < 2) {
-                alert('¡Por favor escribe el nombre completo! 💕');
+                alert('Por favor escribe el nombre completo');
                 childNameInput.focus();
                 return;
             }
 
-            // Mostrar loading
+            // UI: Mostrar loading
             confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.6';
             loading.style.display = 'block';
 
-            // Enviar email en segundo plano
-            const emailSent = await sendConfirmationEmail(name);
-            
-            // Simular un pequeño delay para mejor UX
-            setTimeout(() => {
-                // Ocultar loading
-                loading.style.display = 'none';
+            try {
+                // Enviar email
+                const emailResult = await sendConfirmationEmail(name);
+                console.log('📋 Resultado:', emailResult);
                 
-                // Mostrar pantalla de información
+                // Esperar para mejor UX
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Mostrar pantalla de éxito
+                loading.style.display = 'none';
                 confirmedNameSpan.textContent = name;
                 initialScreen.style.display = 'none';
                 infoScreen.style.display = 'block';
-                
-                // Mostrar celebración
                 showCelebration();
                 
-                // Guardar en localStorage para futuras visitas
+                // Guardar confirmación exitosa
                 localStorage.setItem('lastConfirmedName', name);
                 localStorage.setItem('lastConfirmationDate', new Date().toISOString());
                 
-            }, 1500);
+                console.log('🎉 Confirmación completada');
+                
+            } catch (error) {
+                console.error('💥 Error inesperado:', error);
+                loading.style.display = 'none';
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                alert('Hubo un problema, pero puedes intentar de nuevo');
+            }
         }
 
-        // Inicializar cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎉 DOM cargado, iniciando aplicación...');
-            
-            // Inicializar EmailJS
-            setTimeout(initializeEmailJS, 500);
-            
-            // Event listeners
-            confirmBtn.addEventListener('click', confirmAttendance);
-            
-            childNameInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    confirmAttendance();
-                }
-            });
-            
-            // Auto-focus
-            childNameInput.focus();
-            
-            // Easter egg para Greys
-            childNameInput.addEventListener('input', (e) => {
-                const name = e.target.value.toLowerCase();
-                if (name.includes('greys') || name.includes('grey')) {
-                    confirmBtn.innerHTML = '👑 ¡Eres la cumpleañera! 👑';
-                    confirmBtn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
-                } else {
-                    confirmBtn.innerHTML = '✨ Confirmar Asistencia ✨';
-                    confirmBtn.style.background = 'linear-gradient(135deg, #E91E63, #9C27B0)';
-                }
-            });
-            
-            // Placeholder rotativo
-            const placeholderTexts = [
-                "Escribe el nombre del niño(a) que asistirá",
-                "¿Cómo se llama el niño(a)?",
-                "Nombre del niño(a) invitado",
-                "Escribe el nombre del niño(a) que asistirá"
-            ];
-            let currentIndex = 0;
-            
-            setInterval(() => {
-                if (childNameInput.value === '') {
-                    currentIndex = (currentIndex + 1) % placeholderTexts.length;
-                    childNameInput.placeholder = placeholderTexts[currentIndex];
-                }
-            }, 3000);
+        // Event listeners
+        confirmBtn.addEventListener('click', confirmAttendance);
+
+        childNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmAttendance();
+            }
         });
 
-        // Console log para debugging
-        console.log('🎉 Cumpleaños de Greys - PWA inicializada');
+        // Easter egg para Greys
+        childNameInput.addEventListener('input', function(e) {
+            const name = e.target.value.toLowerCase();
+            if (name.includes('greys') || name.includes('grey')) {
+                confirmBtn.innerHTML = '👑 ¡Eres la cumpleañera! 👑';
+                confirmBtn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+            } else {
+                confirmBtn.innerHTML = '✨ Confirmar Asistencia ✨';
+                confirmBtn.style.background = 'linear-gradient(135deg, #E91E63, #9C27B0)';
+            }
+        });
+
+        // Placeholder rotativo
+        const placeholderTexts = [
+            "Escribe el nombre del niño(a) que asistirá",
+            "¿Cómo se llama el niño(a)?",
+            "Nombre del niño(a) invitado",
+            "Escribe el nombre del niño(a) que asistirá"
+        ];
+        let currentIndex = 0;
+        
+        setInterval(function() {
+            if (childNameInput.value === '') {
+                currentIndex = (currentIndex + 1) % placeholderTexts.length;
+                childNameInput.placeholder = placeholderTexts[currentIndex];
+            }
+        }, 3000);
+
+        // Auto-focus
+        childNameInput.focus();
+
+        // Inicializar EmailJS con delay
+        setTimeout(function() {
+            initializeEmailJS();
+        }, 1000);
+
+        // Log de configuración
         console.log('📧 Service ID: service_q7l3asm');
-        console.log('🔑 Public Key: XokWkYQQHAzpMBHJz'); 
+        console.log('🔑 Public Key: XokWkYQQHAzpMBHJz');
         console.log('📋 Template ID: template_jfpho7b');
         console.log('📨 Email destino: macfius@gmail.com');
+        console.log('✅ Aplicación lista');
     </script>
 </body>
 </html>
